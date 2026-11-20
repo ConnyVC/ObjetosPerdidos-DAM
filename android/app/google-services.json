@@ -12,7 +12,20 @@
           "package_name": "com.example.objetos_perdidos"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "665017936031-10v6nvs80p0fq1v9g314kitipf67biub.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.objetos_perdidos",
+            "certificate_hash": "3cfd34cdb3cabd5d49aadf26723950e0408efcd5"
+          }
+        },
+        {
+          "client_id": "665017936031-oi0201svuu968nkocjc3i4db9f5eb6r3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAd3VqDzpaUko75ypZoNTqid8_yg9M4Qh8"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "665017936031-oi0201svuu968nkocjc3i4db9f5eb6r3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
