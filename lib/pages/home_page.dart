@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
+import 'package:objetos_perdidos/constants.dart';
 import 'package:objetos_perdidos/services/auth_service.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -29,11 +30,15 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.pink.shade500,
-        leading: Icon(MdiIcons.bagPersonal, size: 30, color: Colors.white),
+        backgroundColor: AppColors.primario,
+        leading: Icon(
+          MdiIcons.bagPersonal,
+          size: 30,
+          color: AppColors.terciario,
+        ),
         title: Text(
-          user?.email ?? "Cargando datos...",
-          style: TextStyle(color: Colors.white, fontSize: 20),
+          user?.displayName ?? "Cargando datos...",
+          style: TextStyle(color: AppColors.fondo, fontSize: 20),
         ),
         actions: [
           PopupMenuButton(
@@ -41,13 +46,13 @@ class _HomePageState extends State<HomePage> {
               await GoogleSignIn().signOut();
               await FirebaseAuth.instance.signOut();
             },
-            iconColor: Colors.white,
+            iconColor: AppColors.fondo,
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: 'logout',
                 child: Text(
                   'Cerrar sesión',
-                  style: TextStyle(color: Colors.blueGrey.shade300),
+                  style: TextStyle(color: AppColors.secundario),
                 ),
               ),
             ],

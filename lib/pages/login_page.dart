@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:objetos_perdidos/constants.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,7 +18,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.pinkAccent.shade200,
+      backgroundColor: AppColors.secundario,
       body: Center(
         child: Container(
           padding: EdgeInsets.all(15),
@@ -82,13 +83,13 @@ class _LoginPageState extends State<LoginPage> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: AppColors.secundario,
                     padding: EdgeInsets.symmetric(vertical: 12),
                   ),
-                  icon: Icon(MdiIcons.heart, color: Colors.white),
+                  icon: Icon(MdiIcons.heart, color: AppColors.terciario),
                   label: Text(
                     'Continuar con google',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: AppColors.fondo),
                   ),
                 ),
               ),
@@ -104,11 +105,11 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       child: Row(
                         children: [
-                          Icon(MdiIcons.alert, color: Colors.red),
+                          Icon(MdiIcons.alert, color: AppColors.terciario),
                           SizedBox(width: 10),
                           Text(
                             mensajeError,
-                            style: TextStyle(color: Colors.red),
+                            style: TextStyle(color: AppColors.terciario),
                           ),
                         ],
                       ),

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:objetos_perdidos/pages/auth_wrapper.dart';
 import 'package:objetos_perdidos/pages/home_page.dart';
 
+import 'constants.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -34,7 +36,8 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primario),
+        scaffoldBackgroundColor: AppColors.fondo,
       ),
       home: const AuthWrapper(),
     );
