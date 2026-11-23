@@ -1,7 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:objetos_perdidos/pages/auth_wrapper.dart';
-import 'package:objetos_perdidos/pages/home_page.dart';
 
 import 'constants.dart';
 

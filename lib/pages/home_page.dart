@@ -14,6 +14,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   User? user;
+  bool soloMios = false;
 
   @override
   void initState() {
@@ -29,37 +30,98 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.fondo,
       appBar: AppBar(
         backgroundColor: AppColors.primario,
-        leading: Icon(
-          MdiIcons.bagPersonal,
-          size: 30,
-          color: AppColors.terciario,
-        ),
-        title: Text(
-          user?.displayName ?? "Cargando datos...",
-          style: TextStyle(color: AppColors.fondo, fontSize: 20),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Objetos Perdidos',
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            Text(
+              user?.displayName ?? 'Cargando usuario...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         actions: [
-          PopupMenuButton(
-            onSelected: (valueSeleccionado) async {
+          IconButton(
+            icon: Icon(MdiIcons.logout, color: Colors.white),
+            tooltip: 'Cerrar Sesión',
+            onPressed: () async {
               await GoogleSignIn().signOut();
               await FirebaseAuth.instance.signOut();
             },
-            iconColor: AppColors.fondo,
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'logout',
-                child: Text(
-                  'Cerrar sesión',
-                  style: TextStyle(color: AppColors.secundario),
-                ),
-              ),
-            ],
           ),
         ],
       ),
-      body: Center(child: Text('Pantalla principal - objetos perdidos')),
+      body: Column(
+        children: [
+          // Barra superior de filtro (Todos vs Mis publicaciones)
+          Container(
+            padding: EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        soloMios = false;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: !soloMios
+                          ? AppColors.primario
+                          : Colors.white,
+                      foregroundColor: !soloMios
+                          ? Colors.white
+                          : AppColors.textoOscuro,
+                    ),
+                    child: Text('Todos'),
+                  ),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        soloMios = true;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: soloMios
+                          ? AppColors.primario
+                          : Colors.white,
+                      foregroundColor: soloMios
+                          ? Colors.white
+                          : AppColors.textoOscuro,
+                    ),
+                    child: Text('Mis publicaciones'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Espacio reservado para la lista de objetos (siguiente paso)
+          Expanded(
+            child: Center(
+              child: Text(
+                soloMios
+                    ? 'Mostrando: Mis publicaciones'
+                    : 'Mostrando: Todos los objetos',
+                style: TextStyle(color: AppColors.textoOscuro),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
