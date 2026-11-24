@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "665017936031-20ltpmhbmhal02tsekgm9ivg1495pov1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.objetos_perdidos",
+            "certificate_hash": "397fb3ee8d5234f19faa6c65d889425306a80298"
+          }
+        },
+        {
           "client_id": "665017936031-oi0201svuu968nkocjc3i4db9f5eb6r3.apps.googleusercontent.com",
           "client_type": 3
         }
