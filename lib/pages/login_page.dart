@@ -1,10 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:objetos_perdidos/constants.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Autenticación con Firebase
+import 'package:flutter/material.dart'; // Widgets de Flutter
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart'; // Íconos
+import 'package:google_sign_in/google_sign_in.dart'; // Inicio de sesión con cuenta de Google
+import 'package:objetos_perdidos/constants.dart'; // Colores personalizados de la app
 
 class LoginPage extends StatefulWidget {
+  // Pantalla con estado porque muestra u oculta mensajes de error al intentar entrar
   const LoginPage({super.key});
 
   @override
@@ -12,55 +13,62 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  String mensajeError = "";
-  bool hayError = false;
+  String mensajeError = ""; // Texto del error que se mostrará si falla el login
+  bool hayError = false; // Indica si hay un error activo para mostrar el cuadro de aviso
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.secundario,
+      backgroundColor: AppColors.secundario, // Color de fondo de la pantalla
       body: Center(
         child: Container(
+          // Tarjeta central donde va el ícono, texto y botón de Google
           padding: EdgeInsets.all(15),
           width: 300,
           height: 420,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.fondo,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center, // Centra los elementos verticalmente
             children: [
+              // Ícono decorativo superior
               Icon(
                 MdiIcons.bagPersonal,
                 size: 67,
-                color: Colors.purple.shade100,
+                color: AppColors.icono,
               ),
               SizedBox(height: 8),
+              // Instrucción para el usuario
               Text(
                 'Ingresa con tu cuenta de gugul',
-                style: TextStyle(color: Colors.blueGrey.shade600),
+                style: TextStyle(color: AppColors.textoOscuro),
               ),
               SizedBox(height: 30),
               SizedBox(
-                width: double.infinity,
+                width: double.infinity, // Botón ocupa todo el ancho de la tarjeta
                 child: ElevatedButton.icon(
                   onPressed: () async {
                     try {
-                      hayError = false;
-                      final googleUser = await GoogleSignIn().signIn();
+                      hayError = false; // Limpia cualquier error anterior al reintentar
+                      final googleUser = await GoogleSignIn().signIn(); // Abre el selector de cuentas de Google
 
                       if (googleUser != null) {
+                        // Si el usuario eligió una cuenta, obtiene sus tokens de autenticación
                         final googleAuth = await googleUser.authentication;
+                        // Crea una credencial de Firebase usando los tokens de Google
                         final credential = GoogleAuthProvider.credential(
                           accessToken: googleAuth.accessToken,
                           idToken: googleAuth.idToken,
                         );
+                        // Inicia sesión en Firebase Auth (esto hará que AuthWrapper pase a HomePage)
                         await FirebaseAuth.instance.signInWithCredential(
                           credential,
                         );
                       }
                     } on FirebaseAuthException catch (ex) {
+                      // Captura errores propios de Firebase Auth
                       hayError = true;
                       switch (ex.code) {
                         case 'account-exists-with-different-credential':
@@ -70,30 +78,32 @@ class _LoginPageState extends State<LoginPage> {
                           mensajeError = "Credenciales no válidas :C";
                           break;
                         case 'user-disabled':
-                          mensajeError = "Cuenta desactivada waja waja";
+                          mensajeError = "Cuenta desactivada";
                           break;
                         default:
                           mensajeError = "No se pudo iniciar sesión >:C ";
                       }
-                      setState(() {});
+                      setState(() {}); // Actualiza la pantalla para mostrar el mensaje de error
                     } catch (ex) {
+                      // Captura cualquier otro error (por ejemplo, problema de red o de Google Sign-In)
                       hayError = true;
                       mensajeError = "No se pudo conectar con gugul";
-                      setState(() {});
+                      setState(() {}); // Actualiza la pantalla para mostrar el mensaje
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secundario,
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: AppColors.secundario, // Color del botón
+                    padding: EdgeInsets.symmetric(vertical: 12), // Alto interno del botón
                   ),
-                  icon: Icon(MdiIcons.heart, color: AppColors.terciario),
+                  icon: Icon(MdiIcons.heart, color: AppColors.terciario), // Ícono del botón
                   label: Text(
                     'Continuar con google',
-                    style: TextStyle(color: AppColors.fondo),
+                    style: TextStyle(color: AppColors.fondo), // Texto del botón
                   ),
                 ),
               ),
               SizedBox(height: 20),
+              // Si hay error muestra un cuadro con alerta; si no, deja un espacio vacío de 45 px
               hayError
                   ? Container(
                       height: 45,
@@ -105,10 +115,10 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       child: Row(
                         children: [
-                          Icon(MdiIcons.alert, color: AppColors.terciario),
+                          Icon(MdiIcons.alert, color: AppColors.terciario), // Ícono de alerta
                           SizedBox(width: 10),
                           Text(
-                            mensajeError,
+                            mensajeError, // Muestra el error ocurrido
                             style: TextStyle(color: AppColors.terciario),
                           ),
                         ],

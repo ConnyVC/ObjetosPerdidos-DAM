@@ -1,11 +1,12 @@
-import 'dart:convert';
-import 'dart:typed_data';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
-import 'package:objetos_perdidos/constants.dart';
+import 'dart:convert'; // Sirve para decodificar texto base64 si existiera alguna foto vieja así
+import 'dart:typed_data'; // Permite trabajar con bytes de imagen (Uint8List)
+import 'package:cloud_firestore/cloud_firestore.dart'; // Para usar Blob y QueryDocumentSnapshot
+import 'package:flutter/material.dart'; // Widgets básicos de Flutter
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart'; // Íconos
+import 'package:objetos_perdidos/constants.dart'; // Colores personalizados de la app
 
 class CardImagen extends StatelessWidget {
+  // Constructor de la tarjeta; recibe el documento del objeto, qué hacer al tocarlo y un widget opcional a la derecha
   const CardImagen({
     super.key,
     required this.objeto,
@@ -13,79 +14,85 @@ class CardImagen extends StatelessWidget {
     this.trailing,
   });
 
-  final QueryDocumentSnapshot objeto;
-  final VoidCallback onTap;
-  final Widget? trailing;
+  final QueryDocumentSnapshot objeto; // Documento que viene desde Firestore
+  final VoidCallback onTap; // Función que se ejecuta al tocar la tarjeta
+  final Widget? trailing; // Widget extra al final (por ejemplo, el menú de editar/borrar)
 
+  // Saca los bytes de la imagen desde el documento de Firestore
   Uint8List? extraerFotoBytes(Map<String, dynamic> data) {
-    final dynamic fotoCampo = data['foto'];
+    final dynamic fotoCampo = data['foto']; // Lee el campo 'foto'
     if (fotoCampo is Blob) {
-      return fotoCampo.bytes;
+      return fotoCampo.bytes; // Si es Blob (como se guarda ahora), devuelve sus bytes
     }
     if (fotoCampo is Uint8List) {
-      return fotoCampo;
+      return fotoCampo; // Si ya viene como lista de bytes, la devuelve directo
     }
+    // Respaldo por si algún documento antiguo tenía la foto guardada como texto base64
     final String? base64String = data['fotoBase64']?.toString();
     if (base64String != null && base64String.isNotEmpty) {
       try {
-        return base64Decode(base64String);
+        return base64Decode(base64String); // Convierte el texto base64 a bytes
       } catch (_) {
-        return null;
+        return null; // Si falla al decodificar, devuelve null
       }
     }
-    return null;
+    return null; // Si no hay foto, devuelve null
   }
 
   @override
   Widget build(BuildContext context) {
-    final data = objeto.data() as Map<String, dynamic>;
-    final String titulo = (data['titulo'] ?? 'Sin título').toString();
-    final String lugar = (data['lugar'] ?? 'Sin lugar').toString();
-    final String categoria = (data['categoria'] ?? 'General').toString();
-    final String estado = (data['estado'] ?? 'Perdido').toString();
-    final bool devuelto = data['devuelto'] == true;
-    final Uint8List? fotoBytes = extraerFotoBytes(data);
+    final data = objeto.data() as Map<String, dynamic>; // Convierte los datos del documento a un mapa clave-valor
+    final String titulo = (data['titulo'] ?? 'Sin título').toString(); // Obtiene el título o un texto por defecto
+    final String lugar = (data['lugar'] ?? 'Sin lugar').toString(); // Obtiene el lugar o un texto por defecto
+    final String categoria = (data['categoria'] ?? 'General').toString(); // Obtiene la categoría o 'General'
+    final String estado = (data['estado'] ?? 'Perdido').toString(); // Obtiene 'Perdido' o 'Encontrado'
+    final bool devuelto = data['devuelto'] == true; // Revisa si ya fue devuelto (true/false)
+    final Uint8List? fotoBytes = extraerFotoBytes(data); // Obtiene los bytes de la foto
 
-    final bool esPerdido = estado == 'Perdido';
+    final bool esPerdido = estado == 'Perdido'; // Ayuda a decidir el color de la etiqueta de estado
 
     return Card(
-      color: Colors.white,
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: AppColors.textoClaro, // Fondo blanco de la tarjeta
+      elevation: 2, // Sombra suave
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Separación con los bordes y otras tarjetas
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), // Bordes redondeados
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
+        borderRadius: BorderRadius.circular(12), // Mismo borde redondeado al tocar
+        onTap: onTap, // Abre el detalle al presionar la tarjeta
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(10), // Espacio interior de la tarjeta
           child: Row(
             children: [
+              // Cuadro de la imagen a la izquierda
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8), // Bordes redondeados para la foto
                 child: fotoBytes != null
                     ? Image.memory(
-                        fotoBytes,
+                        fotoBytes, // Muestra la imagen desde los bytes en memoria
                         width: 72,
                         height: 72,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.cover, // Recorta/ajusta para llenar el cuadrado sin deformar
                       )
                     : Container(
+                        // Si no hay imagen, muestra un cuadro con ícono de sin imagen
                         width: 72,
                         height: 72,
                         color: AppColors.fondo,
                         child: Icon(
                           MdiIcons.imageOffOutline,
-                          color: Colors.grey.shade500,
+                          color: AppColors.textoNoSeleccionado,
                         ),
                       ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 12), // Separación entre la imagen y los textos
               Expanded(
+                // Ocupa el espacio restante para que el texto no se salga de la pantalla
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start, // Alinea textos a la izquierda
                   children: [
                     Row(
                       children: [
+                        // Etiqueta de estado ('Perdido' en rojo suave, 'Encontrado' en azul suave)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -93,8 +100,8 @@ class CardImagen extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: esPerdido
-                                ? Colors.red.shade100
-                                : Colors.blue.shade100,
+                                ? AppColors.perdido
+                                : AppColors.encontrado,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -103,12 +110,13 @@ class CardImagen extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               color: esPerdido
-                                  ? Colors.red.shade800
-                                  : Colors.blue.shade800,
+                                  ? AppColors.textoOscuro
+                                  : AppColors.textoOscuro,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 6), // Separación entre ambas etiquetas
+                        // Etiqueta de devolución ('Devuelto' en verde, 'No devuelto' en ámbar)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -116,8 +124,8 @@ class CardImagen extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: devuelto
-                                ? Colors.green.shade100
-                                : Colors.amber.shade100,
+                                ? AppColors.devuelto
+                                : AppColors.noDevuelto,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -126,14 +134,15 @@ class CardImagen extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               color: devuelto
-                                  ? Colors.green.shade800
-                                  : Colors.amber.shade900,
+                                  ? AppColors.textoOscuro
+                                  : AppColors.textoOscuro,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 5), // Espacio entre etiquetas y título
+                    // Título del objeto
                     Text(
                       titulo,
                       style: TextStyle(
@@ -141,15 +150,16 @@ class CardImagen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         color: AppColors.textoOscuro,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1, // Solo una línea
+                      overflow: TextOverflow.ellipsis, // Pone '...' si es muy largo
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 2), // Pequeño espacio entre título y lugar/categoría
+                    // Lugar y categoría del objeto
                     Text(
                       '$lugar • $categoria',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade700,
+                        color: AppColors.textoOscuro,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -157,7 +167,7 @@ class CardImagen extends StatelessWidget {
                   ],
                 ),
               ),
-              ?trailing,
+              ?trailing, // Muestra el widget extra si se pasó (por ejemplo, el botón de opciones)
             ],
           ),
         ),

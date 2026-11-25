@@ -1,14 +1,15 @@
-import 'dart:typed_data';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:objetos_perdidos/constants.dart';
-import 'package:objetos_perdidos/services/auth_service.dart';
-import 'package:objetos_perdidos/services/fs_service.dart';
+import 'dart:typed_data'; // Para manejar los bytes de la imagen (Uint8List)
+import 'package:cloud_firestore/cloud_firestore.dart'; // Para QuerySnapshot de categorías
+import 'package:firebase_auth/firebase_auth.dart'; // Para el tipo User del usuario autenticado
+import 'package:flutter/material.dart'; // Widgets básicos de Flutter
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart'; // Íconos
+import 'package:image_picker/image_picker.dart'; // Para tomar foto con cámara o elegir de galería
+import 'package:objetos_perdidos/constants.dart'; // Colores personalizados de la app
+import 'package:objetos_perdidos/services/auth_service.dart'; // Para obtener el usuario actual
+import 'package:objetos_perdidos/services/fs_service.dart'; // Para consultar categorías y guardar el objeto
 
 class AgregarObjetoPage extends StatefulWidget {
+  // Pantalla con estado porque maneja campos del formulario, foto y estado de guardado
   const AgregarObjetoPage({super.key});
 
   @override
@@ -16,40 +17,44 @@ class AgregarObjetoPage extends StatefulWidget {
 }
 
 class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
-  static const int _maxBytesFoto = 900 * 1024; // ~900 KB para mantener documento < 1 MB
+  // Límite de ~900 KB para que el documento completo en Firestore pese menos de 1 MB
+  static const int _maxBytesFoto = 900 * 1024;
 
-  final _formKey = GlobalKey<FormState>();
-  final _tituloCtrl = TextEditingController();
-  final _descripcionCtrl = TextEditingController();
-  final _lugarCtrl = TextEditingController();
+  final _formKey = GlobalKey<FormState>(); // Clave para validar todos los campos del formulario
+  final _tituloCtrl = TextEditingController(); // Controla el texto del campo Título
+  final _descripcionCtrl = TextEditingController(); // Controla el texto del campo Descripción
+  final _lugarCtrl = TextEditingController(); // Controla el texto del campo Lugar
 
-  String _estadoSeleccionado = 'Perdido';
-  String? _categoriaSeleccionada;
-  Uint8List? _fotoBytes;
-  bool _guardando = false;
+  String _estadoSeleccionado = 'Perdido'; // Estado inicial del desplegable ('Perdido' o 'Encontrado')
+  String? _categoriaSeleccionada; // Categoría elegida por el usuario
+  Uint8List? _fotoBytes; // Bytes de la foto seleccionada o tomada
+  bool _guardando = false; // Evita que se envíe el formulario dos veces seguidas
 
-  final ImagePicker _picker = ImagePicker();
-  late final Future<QuerySnapshot> _categoriasFuture;
+  final ImagePicker _picker = ImagePicker(); // Herramienta para abrir cámara o galería
+  late final Future<QuerySnapshot> _categoriasFuture; // Guarda la consulta futura de categorías
 
   @override
   void initState() {
     super.initState();
+    // Carga las categorías una vez al abrir la pantalla para no repetir la consulta en cada rebuild
     _categoriasFuture = FsService().categorias();
   }
 
   @override
   void dispose() {
+    // Libera la memoria de los controladores de texto cuando se cierra la pantalla
     _tituloCtrl.dispose();
     _descripcionCtrl.dispose();
     _lugarCtrl.dispose();
     super.dispose();
   }
 
+  // Muestra una barra roja inferior si la foto excede el tamaño máximo permitido
   void _mostrarAvisoTamano() {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.terciario,
         content: Text(
           'La foto supera el tamaño permitido (el documento debe pesar menos de 1 MB).',
         ),
@@ -57,56 +62,61 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
     );
   }
 
+  // Abre la cámara o galería, comprime la imagen y valida que no supere _maxBytesFoto
   Future<void> _seleccionarFoto(ImageSource fuente) async {
     final XFile? imagen = await _picker.pickImage(
-      source: fuente,
-      maxWidth: 1024,
-      imageQuality: 65,
+      source: fuente, // ImageSource.camera o ImageSource.gallery
+      maxWidth: 1024, // Reduce el ancho máximo para bajar el peso de la imagen
+      imageQuality: 65, // Comprime calidad al 65%
     );
 
-    if (imagen == null) return;
+    if (imagen == null) return; // Si el usuario canceló, no hace nada
 
-    final Uint8List bytes = await imagen.readAsBytes();
+    final Uint8List bytes = await imagen.readAsBytes(); // Lee la imagen como bytes
     if (!mounted) return;
 
     if (bytes.lengthInBytes > _maxBytesFoto) {
-      _mostrarAvisoTamano();
+      _mostrarAvisoTamano(); // Avisa si sigue siendo muy pesada
       return;
     }
 
     setState(() {
-      _fotoBytes = bytes;
+      _fotoBytes = bytes; // Guarda la foto válida y redibuja la vista previa
     });
   }
 
+  // Valida todo, obtiene el usuario actual y guarda el nuevo objeto en Firestore
   Future<void> _guardar() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return; // Si algún campo obligatorio falla, se detiene
 
+    // Verifica que exista una foto seleccionada
     if (_fotoBytes == null || _fotoBytes!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.terciario,
           content: Text('Debes tomar o seleccionar una foto'),
         ),
       );
       return;
     }
 
+    // Vuelve a comprobar el tamaño antes de enviar a Firestore
     if (_fotoBytes!.lengthInBytes > _maxBytesFoto) {
       _mostrarAvisoTamano();
       return;
     }
 
-    if (_guardando) return;
-    setState(() => _guardando = true);
+    if (_guardando) return; // Evita doble clic mientras ya está guardando
+    setState(() => _guardando = true); // Activa estado de carga y bloquea el botón
 
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context); // Guarda referencia antes de operaciones asíncronas
+    final navigator = Navigator.of(context); // Guarda referencia de navegación antes de await
 
     try {
-      User? user = await AuthService().currentUser();
-      if (user == null) return;
+      User? user = await AuthService().currentUser(); // Obtiene el usuario autenticado
+      if (user == null) return; // Si no hay usuario, corta el guardado
 
+      // Envía todos los datos y la foto en bytes a Firestore mediante FsService
       await FsService().agregarObjeto(
         titulo: _tituloCtrl.text.trim(),
         descripcion: _descripcionCtrl.text.trim(),
@@ -127,16 +137,17 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
           content: const Text('Objeto publicado correctamente'),
         ),
       );
-      navigator.pop();
+      navigator.pop(); // Regresa a HomePage tras publicar
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(
         const SnackBar(
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.terciario,
           content: Text('Error al guardar el objeto'),
         ),
       );
     } finally {
+      // Siempre apaga el indicador de guardado si el widget sigue montado
       if (mounted) {
         setState(() => _guardando = false);
       }
@@ -146,23 +157,25 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.fondo,
+      backgroundColor: AppColors.fondo, // Fondo de la pantalla
       appBar: AppBar(
-        backgroundColor: AppColors.primario,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.primario, // Barra superior
+        foregroundColor: AppColors.textoClaro,
         title: const Text('Publicar Objeto'),
       ),
       body: Container(
+        // Contenedor blanco redondeado que envuelve el formulario
         margin: const EdgeInsets.all(10),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.textoClaro,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Form(
-          key: _formKey,
+          key: _formKey, // Asocia la clave del formulario
           child: ListView(
             children: [
+              // Selector de estado ('Perdido' o 'Encontrado')
               DropdownButtonFormField<String>(
                 initialValue: _estadoSeleccionado,
                 decoration: const InputDecoration(
@@ -180,6 +193,7 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
                 },
               ),
               const SizedBox(height: 12),
+              // Campo de título obligatorio
               TextFormField(
                 controller: _tituloCtrl,
                 decoration: const InputDecoration(
@@ -195,6 +209,7 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
                 },
               ),
               const SizedBox(height: 12),
+              // Campo de descripción obligatorio con 3 líneas de alto
               TextFormField(
                 controller: _descripcionCtrl,
                 maxLines: 3,
@@ -211,6 +226,7 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
                 },
               ),
               const SizedBox(height: 12),
+              // Campo de lugar obligatorio
               TextFormField(
                 controller: _lugarCtrl,
                 decoration: const InputDecoration(
@@ -226,19 +242,22 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
                 },
               ),
               const SizedBox(height: 12),
+              // Construye el selector de categorías según el estado de _categoriasFuture
               FutureBuilder<QuerySnapshot>(
                 future: _categoriasFuture,
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
+                    // Muestra error si falló la lectura en Firestore
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Text(
                         'Error al cargar categorías: ${snapshot.error}',
-                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                        style: const TextStyle(color: AppColors.terciario, fontSize: 12),
                       ),
                     );
                   }
 
+                  // Mientras espera las categorías desde Firestore
                   if (snapshot.connectionState == ConnectionState.waiting ||
                       !snapshot.hasData) {
                     return const Padding(
@@ -247,7 +266,7 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
                     );
                   }
 
-                  final docs = snapshot.data!.docs;
+                  final docs = snapshot.data!.docs; // Lista de documentos de categorías
                   if (docs.isEmpty) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
@@ -255,6 +274,7 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
                     );
                   }
 
+                  // Desplegable con las categorías obtenidas de Firestore
                   return DropdownButtonFormField<String>(
                     initialValue: _categoriaSeleccionada,
                     decoration: const InputDecoration(
@@ -282,6 +302,7 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
                 },
               ),
               const SizedBox(height: 16),
+              // Botones para elegir foto desde cámara o galería
               Row(
                 children: [
                   Expanded(
@@ -308,6 +329,7 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
                 ],
               ),
               const SizedBox(height: 10),
+              // Vista previa de la foto si ya se eligió; si no, cuadro indicando que falta
               if (_fotoBytes != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
@@ -324,30 +346,31 @@ class _AgregarObjetoPageState extends State<AgregarObjetoPage> {
                   decoration: BoxDecoration(
                     color: AppColors.fondo,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: AppColors.textoOscuro),
                   ),
                   child: Center(
                     child: Text(
                       'Sin foto seleccionada',
-                      style: TextStyle(color: Colors.grey.shade600),
+                      style: TextStyle(color: AppColors.textoOscuro),
                     ),
                   ),
                 ),
               const SizedBox(height: 20),
+              // Botón principal para publicar; se deshabilita mientras _guardando es true
               SizedBox(
                 height: 48,
                 child: ElevatedButton.icon(
                   onPressed: _guardando ? null : _guardar,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primario,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColors.textoClaro,
                   ),
                   icon: _guardando
                       ? const SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: AppColors.textoClaro,
                             strokeWidth: 2,
                           ),
                         )

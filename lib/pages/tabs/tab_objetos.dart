@@ -1,12 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
-import 'package:objetos_perdidos/constants.dart';
-import 'package:objetos_perdidos/pages/detalle_objeto_page.dart';
-import 'package:objetos_perdidos/services/fs_service.dart';
-import 'package:objetos_perdidos/widgets/card_imagen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Para QuerySnapshot y documentos de Firestore
+import 'package:flutter/material.dart'; // Widgets básicos de Flutter
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart'; // Íconos
+import 'package:objetos_perdidos/constants.dart'; // Colores personalizados de la app
+import 'package:objetos_perdidos/pages/detalle_objeto_page.dart'; // Pantalla para ver el detalle de un objeto
+import 'package:objetos_perdidos/services/fs_service.dart'; // Servicio con consultas a Firestore
+import 'package:objetos_perdidos/widgets/card_imagen.dart'; // Tarjeta reutilizable de cada objeto
 
 class TabObjetos extends StatefulWidget {
+  // Pestaña con estado porque guarda la categoría elegida para filtrar
   const TabObjetos({super.key});
 
   @override
@@ -14,12 +15,13 @@ class TabObjetos extends StatefulWidget {
 }
 
 class _TabObjetosState extends State<TabObjetos> {
-  String _categoriaSeleccionada = 'Todas';
-  late final Future<QuerySnapshot> _categoriasFuture;
+  String _categoriaSeleccionada = 'Todas'; // Filtro inicial: muestra todas las categorías
+  late final Future<QuerySnapshot> _categoriasFuture; // Guarda la consulta futura de categorías
 
   @override
   void initState() {
     super.initState();
+    // Carga las categorías una sola vez al iniciar la pestaña
     _categoriasFuture = FsService().categorias();
   }
 
@@ -27,16 +29,18 @@ class _TabObjetosState extends State<TabObjetos> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Caja blanca superior con el filtro desplegable por categoría
         Container(
           margin: const EdgeInsets.fromLTRB(10, 10, 10, 4),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.textoClaro,
             borderRadius: BorderRadius.circular(12),
           ),
           child: FutureBuilder<QuerySnapshot>(
             future: _categoriasFuture,
             builder: (context, snapshot) {
+              // Siempre empieza con la opción 'Todas las categorías'
               final opciones = <DropdownMenuItem<String>>[
                 const DropdownMenuItem(
                   value: 'Todas',
@@ -44,6 +48,7 @@ class _TabObjetosState extends State<TabObjetos> {
                 ),
               ];
 
+              // Cuando llegan las categorías desde Firestore, agrega cada una al desplegable
               if (snapshot.hasData) {
                 for (final doc in snapshot.data!.docs) {
                   final data = doc.data() as Map<String, dynamic>;
@@ -60,7 +65,7 @@ class _TabObjetosState extends State<TabObjetos> {
               }
 
               return DropdownButtonFormField<String>(
-                initialValue: _categoriaSeleccionada,
+                initialValue: _categoriaSeleccionada, // Categoría seleccionada actualmente
                 decoration: InputDecoration(
                   prefixIcon: Icon(
                     MdiIcons.filterVariant,
@@ -72,6 +77,7 @@ class _TabObjetosState extends State<TabObjetos> {
                 items: opciones,
                 onChanged: (valor) {
                   if (valor != null) {
+                    // Actualiza el filtro y vuelve a dibujar la lista
                     setState(() => _categoriaSeleccionada = valor);
                   }
                 },
@@ -79,25 +85,30 @@ class _TabObjetosState extends State<TabObjetos> {
             },
           ),
         ),
+        // Ocupa el resto de la pantalla con la lista en tiempo real de objetos
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: FsService().objetos(),
+            stream: FsService().objetos(), // Escucha cambios en tiempo real de 'objetos'
             builder: (context, snapshot) {
               if (snapshot.hasError) {
+                // Muestra error si falla el stream de Firestore
                 return Center(
                   child: Text(
                     'Error al cargar objetos: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.red),
+                    style: const TextStyle(color: AppColors.terciario),
                   ),
                 );
               }
 
+              // Mientras espera los primeros datos del stream
               if (snapshot.connectionState == ConnectionState.waiting ||
                   !snapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              var docs = snapshot.data!.docs;
+              var docs = snapshot.data!.docs; // Lista de documentos recibidos desde Firestore
+
+              // Si hay una categoría específica seleccionada, filtra la lista por ese campo
               if (_categoriaSeleccionada != 'Todas') {
                 docs = docs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
@@ -105,6 +116,7 @@ class _TabObjetosState extends State<TabObjetos> {
                 }).toList();
               }
 
+              // Si tras filtrar no quedan elementos, muestra un mensaje
               if (docs.isEmpty) {
                 return Center(
                   child: Text(
@@ -114,13 +126,15 @@ class _TabObjetosState extends State<TabObjetos> {
                 );
               }
 
+              // Construye la lista deslizable solo con los elementos visibles (eficiente con ListView.builder)
               return ListView.builder(
                 itemCount: docs.length,
                 itemBuilder: (context, index) {
-                  final doc = docs[index];
+                  final doc = docs[index]; // Documento correspondiente a esta fila
                   return CardImagen(
-                    objeto: doc,
+                    objeto: doc, // Pasa el documento a la tarjeta
                     onTap: () {
+                      // Al tocar la tarjeta, abre DetalleObjetoPage pasando el documento
                       Navigator.push(
                         context,
                         MaterialPageRoute(
